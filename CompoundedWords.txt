@@ -1,0 +1,191 @@
+#include<bit/stdc++.h>
+using namespace std;
+const int MAX = 32;
+
+class Node {
+public:
+        bool word_ends;
+        vector<Node *> children;
+        Node(int n);
+        ~Node();
+};
+
+Node :: Node(int n) {
+        word_ends = false;
+        for (int i = 0; i < n; i++) {
+                children.push_back(NULL);
+        }
+}
+
+Node :: ~Node() {
+        vector<Node *> :: iterator i = children.begin();
+        for (; i != children.end(); ++i)
+                if (*i != NULL)
+                        delete(*i);
+}
+
+
+class Trie {
+        Node *root;
+        int n;
+public:
+        Trie(int value);
+        ~Trie();
+        void stripWord(string &wrd);
+        void insertWord(string wrd);
+        bool isCompoundWord(string wrd, int);
+};
+
+Trie :: Trie(int value) {
+        n = value;
+        root = new Node(n);
+}
+
+Trie :: ~Trie() {
+        delete(root);
+}
+
+inline void Trie :: stripWord(string &word) {
+        if (*word.rbegin() == '\r') {
+                word.erase(word.length() - 1);
+        }
+}
+
+/* Function to insert a word in the Trie tree */
+void Trie :: insertWord(string wrd) {
+       Node *r = root;
+
+        for (string :: iterator i = wrd.begin(); i != wrd.end(); ++i) {
+                char chr = *i;
+                int index = chr - 'a';
+
+                if (r -> children[index] == NULL) {
+                        r -> children[index] = new Node(n);
+                }
+                r = (Node *)r -> children[index];
+        }
+        if (!r -> word_ends)
+                r -> word_ends = true;
+}
+
+/* A recursive function to check whether a given word is compound word */
+bool Trie :: isCompoundWord(string wrd, int wrd_length) {
+        Node *r = root;
+        int cnt = 0;
+        if (wrd.empty())
+                return true;
+
+        string :: iterator i = wrd.begin();
+        while (i != wrd.end()) {
+                char chr = *i;
+                int index = chr - 'a';
+                r = r -> children[index];
+                if (r != NULL) {
+                        if (r -> wrd_ends) {
+                                string suffix = string(wrd, cnt + 1);
+                                if (isCompoundWord(suffix, wrd_length)) {
+                                        if (wrd.length() != wrd_length) {
+                                                return true;
+                                        } else if (suffix.length() == 0) {
+                                                return false;
+                                        } else {
+                                                return true;
+                                        }
+                                }
+                        }
+                }
+                else {
+                        return false;
+                }
+                i++;
+                cnt++;
+        }
+        if (!(r -> wrd_ends)) {
+                return false;
+        }
+}
+
+/* Function to get the file to be parsed from the user */
+void getFile(char filename[]) {
+        ifstream file;
+        cout << "Enter filename: ";
+        cin >> filename;
+        file.open(filename);
+       
+        file.close();
+}
+
+/* Function to load all the words from the given file in the Trie tree */
+void loadData(Trie &T, char *filename) {
+        ifstream file;
+        file.open(filename);
+        for (string word; getline(file, wrd);) {
+                T.stripWord(wrd);
+                T.insertWord(wrd);
+        }
+        file.close();
+}
+
+/*  Function to read through the file and check for all the compound words.
+    It displays the first and second longest compound word.
+ */
+void findCompoundedWords(Trie &T, char *filename) {
+        string word, longest_word, second_longest_word;
+        int c = 0, max_length = 0, second_max_length = 0;
+
+        ifstream file;
+        file.open(filename);
+
+        for (string word; getline(file, word);) {
+                T.stripWord(word);
+                if (T.isCompoundWord(word, word.length())) {
+                        c++;
+                        if (max_length < word.length()) {
+                                second_max_length = max_length;
+                                second_longest_word = longest_word;
+
+                                max_length = word.length();
+                                longest_word = word;
+                        }
+                        else {
+                                if (second_max_length <= word.length()) {
+                                        second_max_length = word.length();
+                                        second_longest_word = word;
+                                }
+                        }
+                }
+        }
+        file.close();
+        cout << "Longest Compound Word: " << setw(30) << longest_word << endl;
+        cout << "Second Longest Compounded Word: " << setw(30) << second_longest_word << endl;
+}
+
+/* Function to calculate execution time */
+double get_cpu_time(){
+    FILETIME a,b,c,d;
+    if (GetProcessTimes(GetCurrentProcess(),&a,&b,&c,&d) != 0){
+        return
+            (double)(d.dwLowDateTime |
+            ((unsigned long long)d.dwHighDateTime << 32)) * 0.0000001;
+    }else{
+        //  Handle error
+        return 0;
+    }
+}
+
+int main(int argc, char *argv[]) {
+        Trie T(26);
+        char filename[MAX];
+        
+        // Starts measuring execution time
+	  double begin = get_cpu_time();
+        getFile(filename);
+        loadData(T, filename);
+        findCompoundedWords(T, filename);
+        
+        // Stop measuring time and calculate the elapsed time
+     	double end = get_cpu_time();
+    	double elapsed = (end - begin);
+    	printf("Time measured: %.3f seconds.\n", elapsed);
+        return 0;
+}
